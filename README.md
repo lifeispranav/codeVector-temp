@@ -26,28 +26,7 @@ sequenceDiagram
     Controller-->>Client: 200 OK (JSON response)
 ```
 
-## 2. Codebase Structure and Layer Segregation
-
-The project is split into a `frontend` and a `backend`, adhering to strict separation of concerns.
-
-### Backend Architecture (`/backend`)
-We employ a layered architecture to ensure that the code is maintainable, highly scalable, and modular.
-
-- **`src/app.js` & `src/server.js`:** The entry points. They initialize the Express server, configure global middlewares, and establish the MongoDB connection.
-- **`src/routes/`:** Maps incoming URL paths to specific controllers. Organized hierarchically (e.g., `index.js` -> `v1/index.js` -> `product.routes.js`) for versioning support.
-- **`src/validation/`:** Houses the Zod schemas and a universal middleware. This layer guarantees that controllers only ever receive sanitized, strictly typed parameters.
-- **`src/controllers/`:** The HTTP layer. Controllers parse the validated requests and format the outgoing JSON responses. They contain zero business logic.
-- **`src/services/`:** The heart of the application. Services manage business rules, such as calculating complex compound cursors for pagination based on the selected sorting method.
-- **`src/repositories/`:** The data access layer. Repositories abstract the database. This is the only place where Mongoose queries (e.g., `$text`, `$lt`, `$or`) and `.lean()` optimizations are written.
-- **`src/models/`:** Defines the data structure using Mongoose. Crucially, this layer also defines the performance indexes (`text` indexes, compound indexes for sorting).
-- **`scripts/`:** Contains the seeder script that rapidly wipes and populates the database with 200,000 records.
-
-### Frontend Architecture (`/frontend`)
-Built with Vite and React.
-- **`src/App.jsx`:** The main layout integrating state management for debounced searches, category selection, and infinite cursor pagination.
-- **`src/index.css` & `src/App.css`:** Vanilla CSS establishing a premium, monochrome glassmorphic design system featuring blur effects and smooth micro-animations.
-
-## 3. Application Programming Interfaces (APIs)
+## 2. Application Programming Interfaces (APIs)
 
 The backend provides a RESTful API returning structured JSON.
 
@@ -58,7 +37,7 @@ Retrieves a paginated list of products.
 
 **Query Parameters:**
 - `category` (optional): Filter products by category (e.g., "Electronics").
-- `search` (optional): Execute a native text search against product names.
+- `search` (optional): Execute a partial regex search against product names.
 - `sort` (optional): Sort the results. Accepted values: `newest`, `price_asc`, `price_desc`.
 - `limit` (optional): The number of items to return (default: 50).
 - `cursor` (optional): The cursor string provided from the previous request to fetch the next page.
@@ -124,6 +103,54 @@ GET http://localhost:5000/api/v1/categories
   }
 }
 ```
+
+## 3. Codebase Structure and Layer Segregation
+
+The project is split into a `frontend` and a `backend`, adhering to strict separation of concerns.
+
+### Backend Architecture (`/backend`)
+
+We employ a layered architecture to ensure that the code is maintainable, highly scalable, and modular.
+
+```text
+backend/
+├── scripts/
+│   └── seed.js                 # Wipes DB and seeds 200,000 records
+└── src/
+    ├── app.js                  # Express app & global middlewares
+    ├── server.js               # Application entry point & port listener
+    ├── config/                 # Environment variables and DB connection
+    ├── controllers/            # HTTP layer (request/response handling)
+    ├── models/                 # Mongoose schemas and database indexes
+    ├── repositories/           # Database access layer (Mongoose queries)
+    ├── routes/                 # Hierarchical URL mapping (e.g. /v1/)
+    ├── services/               # Core business logic and cursor math
+    ├── utils/                  # Reusable utilities (e.g. AppError)
+    └── validation/             # Zod schemas and validation middleware
+```
+
+- **Routes:** Maps incoming URL paths to specific controllers. Organized hierarchically (e.g., `index.js` -> `v1/index.js` -> `product.routes.js`) for versioning support.
+- **Validation:** Houses the Zod schemas and a universal middleware. This layer guarantees that controllers only ever receive sanitized, strictly typed parameters.
+- **Controllers:** The HTTP layer. Controllers parse the validated requests and format the outgoing JSON responses. They contain zero business logic.
+- **Services:** The heart of the application. Services manage business rules, such as calculating complex compound cursors for pagination based on the selected sorting method.
+- **Repositories:** The data access layer. Repositories abstract the database. This is the only place where Mongoose queries (e.g., `$regex`, `$lt`, `$or`) and `.lean()` optimizations are written.
+- **Models:** Defines the data structure using Mongoose. Crucially, this layer also defines the performance indexes (`text` indexes, compound indexes for sorting).
+
+### Frontend Architecture (`/frontend`)
+
+Built with Vite and React.
+
+```text
+frontend/
+└── src/
+    ├── App.jsx                 # Main layout, State Management, API integration
+    ├── App.css                 # Component-specific styles
+    ├── index.css               # Global CSS variables and glassmorphism resets
+    └── main.jsx                # React DOM render entry point
+```
+
+- **`src/App.jsx`:** The main layout integrating state management for debounced searches, category selection, and infinite cursor pagination.
+- **`src/index.css` & `src/App.css`:** Vanilla CSS establishing a premium, monochrome glassmorphic design system featuring blur effects and smooth micro-animations.
 
 ## 4. How It Works: Technical Highlights
 
